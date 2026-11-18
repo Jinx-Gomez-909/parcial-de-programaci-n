@@ -2,52 +2,46 @@ using UnityEngine;
 
 public class enemyTIE : MonoBehaviour
 {
-    [SerializeField] private GameObject player;
     [SerializeField] private float moveSpeed = 1f;
-    private Rigidbody2D rb;
-    private Vector2 movement;
-
-    [Header("Animations")]
     [SerializeField] private Animator anim;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private Rigidbody2D rb;
+    private Transform player;
+    private Vector2 movement;
+    private bool isDead;
+
     void Start()
     {
-        rb= GetComponent<Rigidbody2D>();
-        player = GameObject.FindWithTag("Player");
+        rb = GetComponent<Rigidbody2D>();
+        GameObject p = GameObject.FindWithTag("Player");
+        if (p != null) player = p.transform;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        Vector3 direction = player.transform.position - transform.position;
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        rb.rotation = angle-90;
-        direction.Normalize();
-        movement = direction;
+        if (isDead || player == null) { movement = Vector2.zero; return; }
+        movement = ((Vector2)player.position - rb.position).normalized;
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
-        moveCharacter(movement);
-    }
-    void moveCharacter(Vector2 direction)
-    {
-        rb.MovePosition((Vector2)transform.position+(direction*moveSpeed*Time.deltaTime));
+        if (isDead || player == null) return;
+
+        float angle = Mathf.Atan2(movement.y, movement.x) * Mathf.Rad2Deg;
+        rb.rotation = angle - 90f;
+        rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.CompareTag("bullet")|| collision.gameObject.CompareTag("Player"))
-        {
-            if (collision.gameObject.CompareTag("bullet"))
-            {
-                Destroy(collision.gameObject);
-                anim.SetBool("Death", true);
-            }
-            
-        }
+        if (isDead || !collision.CompareTag("bullet")) return;
+
+        isDead = true;
+        Destroy(collision.gameObject);
+        GetComponent<Collider2D>().enabled = false;
+        anim.SetBool("Death", true);
     }
+
     public void Destroy()
     {
         Destroy(gameObject);
